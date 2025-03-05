@@ -39,12 +39,20 @@ function findBookByISBNAndAuthor(isbn, author, callback) {
     });
 }
 
+// Function to test GET request to find books by Author only
+function findBooksByAuthor(author, callback) {
+    const url = `${baseURL}/find-by-author?author=${encodeURIComponent(author)}`;
+    needle.get(url, { json: true }, (err, resp) => {
+        return callback(err, resp, resp ? resp.body : undefined);
+    });
+}
+
 console.log("");
 console.log("----------------------------------------");
 console.log("        Adding Books to Database        ");
 console.log("----------------------------------------\n");
-console.log("");
 
+let booksAdded = 0;
 
 // Add books sequentially and then retrieve one
 books.forEach((book, index) => {
@@ -52,11 +60,7 @@ books.forEach((book, index) => {
         if (err) {
             console.error("[ERROR] Unable to add book:", err);
         } else {
-            if (body.success) {
-                console.log("[SUCCESS] Book Added:");
-            } else {
-                console.log("[FAILED] Book Not Added (Duplicate ISBN):");
-            }
+            console.log(body && body.success ? "[SUCCESS] Book Added:" : "[FAILED] Book Not Added (Duplicate ISBN):");
             console.log("----------------------------------------");
             console.log(`Title          : ${book.bookName}`);
             console.log(`ISBN           : ${book.isbn}`);
@@ -65,26 +69,53 @@ books.forEach((book, index) => {
             console.log("----------------------------------------\n");
         }
 
-        // After the last book is added, test retrieval
-        if (index === books.length - 1) {
+        booksAdded++;
+
+        // After all books are added, test retrieval
+        if (booksAdded === books.length) {
             console.log("");
             console.log("----------------------------------------");
             console.log("    Testing GET /find-by-isbn-author    ");
             console.log("----------------------------------------\n");
-            console.log("");
 
             findBookByISBNAndAuthor("978-0-7475-3269-9", "J.K. Rowling", (err, resp, body) => {
                 if (err) {
                     console.error("[ERROR] Unable to retrieve book:", err);
-                } else {
+                } else if (body && body.success && body.books.length > 0) {
                     console.log("[FOUND] Book Retrieved:");
                     console.log("----------------------------------------");
                     console.log(`Title          : ${body.books[0].bookName}`);
                     console.log(`ISBN           : ${body.books[0].isbn}`);
                     console.log(`Author         : ${body.books[0].author}`);
                     console.log(`Published Year : ${body.books[0].publishedYear}`);
-                    console.log("----------------------------------------");
+                    console.log("----------------------------------------\n");
+                    console.log("");
+                } else {
+                    console.log("[NOT FOUND] No book matched the search criteria.\n");
                 }
+
+                console.log("----------------------------------------");
+                console.log("       Testing GET /find-by-author      ");
+                console.log("----------------------------------------\n");
+
+                findBooksByAuthor("J.K. Rowling", (err, resp, body) => {
+                    if (err) {
+                        console.error("[ERROR] Unable to retrieve books:", err);
+                    } else if (body && body.success && body.books.length > 0) {
+                        console.log(`[FOUND] Book/s by "${body.books[0].author}":`);
+                        body.books.forEach((book, idx) => {
+                            console.log("----------------------------------------");
+                            console.log(`Book #${idx + 1}`);
+                            console.log(`Title          : ${book.bookName}`);
+                            console.log(`ISBN           : ${book.isbn}`);
+                            console.log(`Published Year : ${book.publishedYear}`);
+                            console.log("----------------------------------------");
+                        });
+                        console.log("");
+                    } else {
+                        console.log("[NOT FOUND] No books found for this author.\n");
+                    }
+                });
             });
         }
     });

@@ -32,7 +32,7 @@ const getBooks = () => {
             };
         });
     } catch (err) {
-        console.error(" Error reading file:", err);
+        console.error("Error reading file:", err);
         return [];
     }
 };
@@ -53,43 +53,68 @@ app.post("/add-book", (req, res) => {
     const { bookName, isbn, author, publishedYear } = req.body;
 
     if (!bookName || !isbn || !author || !publishedYear) {
-        return res.json({ success: false });
+        return res.json({ success: false, message: "Missing book details." });
     }
 
     if (!isUniqueISBN(isbn)) {
-        return res.json({ success: false });
+        return res.json({ success: false, message: "Duplicate ISBN." });
     }
 
     const bookEntry = `${bookName}, ${isbn}, ${author}, ${publishedYear}\n`;
 
     try {
         fs.appendFileSync(FILE_PATH, bookEntry, "utf8");
-        return res.json({ success: true });
+        return res.json({ success: true, message: "Book added successfully." });
     } catch (err) {
-        console.error(" File write error:", err);
-        return res.json({ success: false });
+        console.error("File write error:", err);
+        return res.json({ success: false, message: "Failed to add book." });
     }
 });
 
-//  GET method to find a book by ISBN and Author
+// GET method to find a book by ISBN and Author
 app.get("/find-by-isbn-author", (req, res) => {
     const { isbn, author } = req.query;
 
     if (!isbn || !author) {
-        return res.json({ success: false, books: [] });
+        return res.status(400).json({ success: false, message: "ISBN and Author parameters are required." });
     }
 
     const books = getBooks();
-    const matchingBooks = books.filter(book => book.isbn === isbn.trim() && book.author === author.trim());
+    const matchingBooks = books.filter(book => 
+        book.isbn.replace(/[-\s]/g, "") === isbn.trim().replace(/[-\s]/g, "") &&
+        book.author.toLowerCase() === author.trim().toLowerCase()
+    );
 
     if (matchingBooks.length > 0) {
         return res.json({ success: true, books: matchingBooks });
     } else {
-        return res.json({ success: false, books: [] });
+        return res.json({ success: false, message: "No book found matching the ISBN and Author." });
     }
 });
 
+
+
+// GET method to find books by author
+app.get("/find-by-author", (req, res) => {
+    const author = req.query.author;
+
+    if (!author) {
+        return res.status(400).json({ success: false, message: "Author parameter is required." });
+    }
+
+    // Retrieve books
+    const books = getBooks();
+    const foundBooks = books.filter(book => book.author.toLowerCase() === author.trim().toLowerCase());
+
+    if (foundBooks.length > 0) {
+        return res.json({ success: true, books: foundBooks });
+    } else {
+        return res.json({ success: false, message: "No books found for this author." });
+    }
+});
+
+
 // Start the server
 app.listen(PORT, () => {
-    console.log(` Server running at http://localhost:${PORT}`);
+    console.log(`Server running at http://localhost:${PORT}`);
 });
