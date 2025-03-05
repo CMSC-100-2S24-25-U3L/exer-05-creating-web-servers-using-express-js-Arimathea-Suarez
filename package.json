@@ -1,0 +1,9 @@
+{
+    "name": "my-web-server",
+    "dependencies": {
+        "express": "^4.21.2",
+        "needle": "^3.3.1",
+        "noodle": "^1.8.1"
+    },
+    "type": "module"
+}
