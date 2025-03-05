@@ -1,6 +1,6 @@
 // Arimathea Charmille H. Suarez
 // CMSC 100 - U3L
-// Description: Express server to add books to a file ensuring unique ISBN entries
+// Description: Express server to add books and search using ISBN and Author
 
 // Imports
 import express from "express";
@@ -16,13 +16,21 @@ app.use(express.json()); // To parse JSON request bodies
 
 // Function to get books from the file
 const getBooks = () => {
-    if (!fs.existsSync(FILE_PATH)) return []; // If file does not exist, return empty array
+    if (!fs.existsSync(FILE_PATH)) return [];
 
     try {
         const data = fs.readFileSync(FILE_PATH, "utf8").trim();
-        if (!data) return []; // If file is empty, return empty array
+        if (!data) return [];
 
-        return data.split("\n").map(line => line.trim());
+        return data.split("\n").map(line => {
+            const parts = line.split(",").map(part => part.trim());
+            return {
+                bookName: parts[0],
+                isbn: parts[1],
+                author: parts[2],
+                publishedYear: parts[3],
+            };
+        });
     } catch (err) {
         console.error(" Error reading file:", err);
         return [];
@@ -32,11 +40,7 @@ const getBooks = () => {
 // Function to check if ISBN is unique
 const isUniqueISBN = (isbn) => {
     const books = getBooks();
-
-    return !books.some((line) => {
-        const parts = line.split(",").map(part => part.trim());
-        return parts.length > 1 && parts[1] === isbn.trim(); // Check ISBN uniqueness
-    });
+    return !books.some(book => book.isbn === isbn.trim());
 };
 
 // The root endpoint
@@ -44,30 +48,44 @@ app.get("/", (req, res) => {
     res.send("Hello!");
 });
 
-// The POST method to add a book
+// POST method to add a book
 app.post("/add-book", (req, res) => {
     const { bookName, isbn, author, publishedYear } = req.body;
 
-    // Ensure all fields exist and are not empty
     if (!bookName || !isbn || !author || !publishedYear) {
         return res.json({ success: false });
     }
 
-    // Check if ISBN is unique
     if (!isUniqueISBN(isbn)) {
         return res.json({ success: false });
     }
 
-    // The format of the book entry
     const bookEntry = `${bookName}, ${isbn}, ${author}, ${publishedYear}\n`;
 
-    // Append to the file
     try {
         fs.appendFileSync(FILE_PATH, bookEntry, "utf8");
         return res.json({ success: true });
     } catch (err) {
         console.error(" File write error:", err);
         return res.json({ success: false });
+    }
+});
+
+//  GET method to find a book by ISBN and Author
+app.get("/find-by-isbn-author", (req, res) => {
+    const { isbn, author } = req.query;
+
+    if (!isbn || !author) {
+        return res.json({ success: false, books: [] });
+    }
+
+    const books = getBooks();
+    const matchingBooks = books.filter(book => book.isbn === isbn.trim() && book.author === author.trim());
+
+    if (matchingBooks.length > 0) {
+        return res.json({ success: true, books: matchingBooks });
+    } else {
+        return res.json({ success: false, books: [] });
     }
 });
 
