@@ -1,8 +1,8 @@
 import needle from "needle";
 
-const baseURL = "http://localhost:3000";
+const baseURL = "http://localhost:3000"; // The base url of the server
 
-// Books to add
+// The arrays of books to add to the base
 const books = [
     {
         bookName: "Harry Potter and the Philosopher's Stone",
@@ -39,7 +39,7 @@ function findBookByISBNAndAuthor(isbn, author, callback) {
     });
 }
 
-// Function to test GET request to find books by Author only
+// A function that sends a GET request to find a book using ISBN and author.
 function findBooksByAuthor(author, callback) {
     const url = `${baseURL}/find-by-author?author=${encodeURIComponent(author)}`;
     needle.get(url, { json: true }, (err, resp) => {
@@ -47,14 +47,15 @@ function findBooksByAuthor(author, callback) {
     });
 }
 
+// The print header for adding books
 console.log("");
 console.log("----------------------------------------");
 console.log("        Adding Books to Database        ");
 console.log("----------------------------------------\n");
 
-let booksAdded = 0;
+let booksAdded = 0; // The counter to track the number of books added
 
-// Add books sequentially and then retrieve one
+// This loops through each book and add it to the database
 books.forEach((book, index) => {
     addBook(book, (err, resp, body) => {
         if (err) {
@@ -71,13 +72,15 @@ books.forEach((book, index) => {
 
         booksAdded++;
 
-        // After all books are added, test retrieval
+        // Once all of the books are added, proceed with testing retrieval
         if (booksAdded === books.length) {
             console.log("");
             console.log("----------------------------------------");
             console.log("    Testing GET /find-by-isbn-author    ");
             console.log("----------------------------------------\n");
 
+
+            // This is a test fetching a book by ISBN and Author
             findBookByISBNAndAuthor("978-0-7475-3269-9", "J.K. Rowling", (err, resp, body) => {
                 if (err) {
                     console.error("[ERROR] Unable to retrieve book:", err);
@@ -98,6 +101,7 @@ books.forEach((book, index) => {
                 console.log("       Testing GET /find-by-author      ");
                 console.log("----------------------------------------\n");
 
+                // Test fetching books by a specific author
                 findBooksByAuthor("J.K. Rowling", (err, resp, body) => {
                     if (err) {
                         console.error("[ERROR] Unable to retrieve books:", err);

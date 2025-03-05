@@ -26,8 +26,8 @@ const getBooks = () => {
             const parts = line.split(",").map(part => part.trim());
             return {
                 bookName: parts[0],
-                isbn: parts[1],
-                author: parts[2],
+                isbn: parts[1].replace(/[-\s]/g, ""),
+                author: parts[2].toLowerCase(),
                 publishedYear: parts[3],
             };
         });
@@ -40,7 +40,7 @@ const getBooks = () => {
 // Function to check if ISBN is unique
 const isUniqueISBN = (isbn) => {
     const books = getBooks();
-    return !books.some(book => book.isbn === isbn.trim());
+    return !books.some(book => book.isbn === isbn.replace(/[-\s]/g, ""));
 };
 
 // The root endpoint
@@ -60,7 +60,7 @@ app.post("/add-book", (req, res) => {
         return res.json({ success: false, message: "Duplicate ISBN." });
     }
 
-    const bookEntry = `${bookName}, ${isbn}, ${author}, ${publishedYear}\n`;
+    const bookEntry = `${bookName}, ${isbn.replace(/[-\s]/g, "")}, ${author.toLowerCase()}, ${publishedYear}\n`;
 
     try {
         fs.appendFileSync(FILE_PATH, bookEntry, "utf8");
@@ -79,10 +79,12 @@ app.get("/find-by-isbn-author", (req, res) => {
         return res.status(400).json({ success: false, message: "ISBN and Author parameters are required." });
     }
 
+    const formattedIsbn = isbn.replace(/[-\s]/g, "");
+    const formattedAuthor = author.trim().toLowerCase();
     const books = getBooks();
     const matchingBooks = books.filter(book => 
-        book.isbn.replace(/[-\s]/g, "") === isbn.trim().replace(/[-\s]/g, "") &&
-        book.author.toLowerCase() === author.trim().toLowerCase()
+        book.isbn === formattedIsbn &&
+        book.author === formattedAuthor
     );
 
     if (matchingBooks.length > 0) {
@@ -91,8 +93,6 @@ app.get("/find-by-isbn-author", (req, res) => {
         return res.json({ success: false, message: "No book found matching the ISBN and Author." });
     }
 });
-
-
 
 // GET method to find books by author
 app.get("/find-by-author", (req, res) => {
@@ -103,8 +103,9 @@ app.get("/find-by-author", (req, res) => {
     }
 
     // Retrieve books
+    const formattedAuthor = author.trim().toLowerCase();
     const books = getBooks();
-    const foundBooks = books.filter(book => book.author.toLowerCase() === author.trim().toLowerCase());
+    const foundBooks = books.filter(book => book.author === formattedAuthor);
 
     if (foundBooks.length > 0) {
         return res.json({ success: true, books: foundBooks });
@@ -112,7 +113,6 @@ app.get("/find-by-author", (req, res) => {
         return res.json({ success: false, message: "No books found for this author." });
     }
 });
-
 
 // Start the server
 app.listen(PORT, () => {
